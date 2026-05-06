@@ -6,7 +6,7 @@ st.set_page_config(
     page_title="OneRep Weightlifting Meet Manager",
     page_icon="🏋️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # -----------------------------
@@ -240,7 +240,7 @@ st.markdown(
         }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # -----------------------------
@@ -270,6 +270,7 @@ if "timer_start_time" not in st.session_state:
 if "meet_results" not in st.session_state:
     st.session_state.meet_results = []
 
+
 # -----------------------------
 # Helper Functions
 # -----------------------------
@@ -279,8 +280,7 @@ def get_current_attempt_weight(competitor, lift, attempt):
 
     if lift == "Snatch":
         return competitor.get(f"Snatch {attempt}", 0) or 0
-    else:
-        return competitor.get(f"Clean & Jerk {attempt}", 0) or 0
+    return competitor.get(f"Clean & Jerk {attempt}", 0) or 0
 
 
 def get_timer_display():
@@ -306,7 +306,7 @@ def record_lift_result(result):
     weight = get_current_attempt_weight(
         competitor,
         st.session_state.current_lift,
-        st.session_state.current_attempt
+        st.session_state.current_attempt,
     )
 
     lift_key = f"{st.session_state.current_lift} {st.session_state.current_attempt} Result"
@@ -354,11 +354,13 @@ def calculate_plates(total_weight, bar_weight_text):
     for plate in plate_options:
         count = int(per_side // plate)
         if count > 0:
-            plates.append({
-                "plate": plate,
-                "count": count,
-                "icon": plate_icons[plate]
-            })
+            plates.append(
+                {
+                    "plate": plate,
+                    "count": count,
+                    "icon": plate_icons[plate],
+                }
+            )
             per_side = round(per_side - (count * plate), 2)
 
     return plates
@@ -376,7 +378,11 @@ def render_plate_calculator(total_weight, bar_weight_text):
     rows = ""
     for plate in plates:
         size_label = "big" if plate["plate"] >= 5 else "little"
-        rows += f"<div class='plate-line'>{plate['icon']} {plate['count']} x {plate['plate']} kg {size_label} plate per side</div>"
+        rows += (
+            f"<div class='plate-line'>"
+            f"{plate['icon']} {plate['count']} x {plate['plate']} kg {size_label} plate per side"
+            f"</div>"
+        )
 
     return f"""
     <div class='plate-card'>
@@ -386,12 +392,13 @@ def render_plate_calculator(total_weight, bar_weight_text):
     </div>
     """
 
+
 # -----------------------------
 # View Navigation
 # -----------------------------
 view = st.sidebar.radio(
     "View",
-    ["Admin Control Desk", "Public Display", "Meet Results"]
+    ["Admin Control Desk", "Public Display", "Meet Results"],
 )
 
 # -----------------------------
@@ -412,7 +419,7 @@ st.markdown(
         </div>
     </div>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # -----------------------------
@@ -454,11 +461,11 @@ if view == "Admin Control Desk":
                     "Body Weight (kg)": body_weight,
                     "Bar Weight": bar_weight,
                     "Snatch 1": snatch_opener,
-                    "Snatch 2": None,
-                    "Snatch 3": None,
+                    "Snatch 2": 0,
+                    "Snatch 3": 0,
                     "Clean & Jerk 1": clean_jerk_opener,
-                    "Clean & Jerk 2": None,
-                    "Clean & Jerk 3": None,
+                    "Clean & Jerk 2": 0,
+                    "Clean & Jerk 3": 0,
                     "Best Snatch": None,
                     "Best Clean & Jerk": None,
                     "Total": None,
@@ -473,13 +480,16 @@ if view == "Admin Control Desk":
     if st.session_state.competitors:
         names = [c["Name"] for c in st.session_state.competitors]
 
+        if st.session_state.current_lifter_index >= len(names):
+            st.session_state.current_lifter_index = 0
+
         col_a, col_b, col_c = st.columns(3)
 
         with col_a:
             selected_name = st.selectbox(
                 "Current Competitor",
                 names,
-                index=min(st.session_state.current_lifter_index, len(names) - 1)
+                index=st.session_state.current_lifter_index,
             )
             st.session_state.current_lifter_index = names.index(selected_name)
 
@@ -487,68 +497,73 @@ if view == "Admin Control Desk":
             st.session_state.current_lift = st.selectbox(
                 "Current Lift",
                 ["Snatch", "Clean & Jerk"],
-                index=0 if st.session_state.current_lift == "Snatch" else 1
+                index=0 if st.session_state.current_lift == "Snatch" else 1,
             )
 
         with col_c:
             st.session_state.current_attempt = st.selectbox(
                 "Attempt",
                 [1, 2, 3],
-                index=st.session_state.current_attempt - 1
+                index=st.session_state.current_attempt - 1,
             )
 
         current_competitor = st.session_state.competitors[st.session_state.current_lifter_index]
         weight = get_current_attempt_weight(
             current_competitor,
             st.session_state.current_lift,
-            st.session_state.current_attempt
+            st.session_state.current_attempt,
         )
 
         st.metric("Current Attempt Weight", f"{weight} kg")
 
-st.markdown("### Attempt Weight Editor")
+        st.markdown("### Attempt Weight Editor")
 
-edit_col1, edit_col2 = st.columns(2)
+        edit_col1, edit_col2 = st.columns(2)
 
-with edit_col1:
-    st.markdown("#### Snatch Attempts")
+        with edit_col1:
+            st.markdown("#### Snatch Attempts")
 
-    current_competitor["Snatch 2"] = st.number_input(
-        "Snatch 2 (kg)",
-        min_value=0,
-        step=1,
-        value=int(current_competitor["Snatch 2"] or 0),
-        key=f"sn2_{current_competitor['Name']}"
-    )
+            current_competitor["Snatch 2"] = st.number_input(
+                "Snatch 2 (kg)",
+                min_value=0,
+                step=1,
+                value=int(current_competitor.get("Snatch 2") or 0),
+                key=f"sn2_{current_competitor['Name']}",
+            )
 
-    current_competitor["Snatch 3"] = st.number_input(
-        "Snatch 3 (kg)",
-        min_value=0,
-        step=1,
-        value=int(current_competitor["Snatch 3"] or 0),
-        key=f"sn3_{current_competitor['Name']}"
-    )
+            current_competitor["Snatch 3"] = st.number_input(
+                "Snatch 3 (kg)",
+                min_value=0,
+                step=1,
+                value=int(current_competitor.get("Snatch 3") or 0),
+                key=f"sn3_{current_competitor['Name']}",
+            )
 
-with edit_col2:
-    st.markdown("#### Clean & Jerk Attempts")
+        with edit_col2:
+            st.markdown("#### Clean & Jerk Attempts")
 
-    current_competitor["Clean & Jerk 2"] = st.number_input(
-        "Clean & Jerk 2 (kg)",
-        min_value=0,
-        step=1,
-        value=int(current_competitor["Clean & Jerk 2"] or 0),
-        key=f"cj2_{current_competitor['Name']}"
-    )
+            current_competitor["Clean & Jerk 2"] = st.number_input(
+                "Clean & Jerk 2 (kg)",
+                min_value=0,
+                step=1,
+                value=int(current_competitor.get("Clean & Jerk 2") or 0),
+                key=f"cj2_{current_competitor['Name']}",
+            )
 
-    current_competitor["Clean & Jerk 3"] = st.number_input(
-        "Clean & Jerk 3 (kg)",
-        min_value=0,
-        step=1,
-        value=int(current_competitor["Clean & Jerk 3"] or 0),
-        key=f"cj3_{current_competitor['Name']}"
-    )
+            current_competitor["Clean & Jerk 3"] = st.number_input(
+                "Clean & Jerk 3 (kg)",
+                min_value=0,
+                step=1,
+                value=int(current_competitor.get("Clean & Jerk 3") or 0),
+                key=f"cj3_{current_competitor['Name']}",
+            )
 
-st.markdown("### Judge Decision")
+        # Recalculate after editing attempt weights.
+        weight = get_current_attempt_weight(
+            current_competitor,
+            st.session_state.current_lift,
+            st.session_state.current_attempt,
+        )
 
         st.markdown("### Judge Decision")
         judge_col1, judge_col2 = st.columns(2)
@@ -574,7 +589,7 @@ st.markdown("### Judge Decision")
                 min_value=15,
                 max_value=120,
                 value=st.session_state.timer_seconds,
-                step=15
+                step=15,
             )
 
         with t2:
@@ -612,7 +627,7 @@ st.markdown("### Judge Decision")
             label="Download Competitor List as CSV",
             data=csv,
             file_name="onerep_competitor_list.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
     else:
         st.info("No competitors added yet.")
@@ -633,6 +648,7 @@ st.markdown("### Judge Decision")
             st.warning("Meet results have been cleared.")
             st.rerun()
 
+
 # -----------------------------
 # Public Display
 # -----------------------------
@@ -642,7 +658,7 @@ if view == "Public Display":
         weight = get_current_attempt_weight(
             current_competitor,
             st.session_state.current_lift,
-            st.session_state.current_attempt
+            st.session_state.current_attempt,
         )
         timer_display = get_timer_display()
 
@@ -660,12 +676,12 @@ if view == "Public Display":
                 <div class="timer-box">{timer_display}</div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
         st.markdown(
             render_plate_calculator(weight, current_competitor["Bar Weight"]),
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
         if st.session_state.timer_running:
@@ -674,6 +690,7 @@ if view == "Public Display":
 
     else:
         st.info("No competitors added yet. Add competitors from the Admin Control Desk first.")
+
 
 # -----------------------------
 # Meet Results View
@@ -691,7 +708,7 @@ if view == "Meet Results":
             label="Download Meet Results as CSV",
             data=csv,
             file_name="onerep_meet_results.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
     else:
         st.info("No lift results recorded yet. Use the Judge Decision buttons in the Admin Control Desk.")
