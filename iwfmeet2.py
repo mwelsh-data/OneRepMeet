@@ -505,6 +505,47 @@ if view == "Admin Control Desk":
         )
 
         st.metric("Current Attempt Weight", f"{weight} kg")
+        st.markdown("### Attempt Weight Editor")
+
+edit_col1, edit_col2 = st.columns(2)
+
+with edit_col1:
+    st.markdown("#### Snatch Attempts")
+
+    current_competitor["Snatch 2"] = st.number_input(
+        "Snatch 2 (kg)",
+        min_value=0,
+        step=1,
+        value=int(current_competitor["Snatch 2"] or 0),
+        key=f"sn2_{current_competitor['Name']}"
+    )
+
+    current_competitor["Snatch 3"] = st.number_input(
+        "Snatch 3 (kg)",
+        min_value=0,
+        step=1,
+        value=int(current_competitor["Snatch 3"] or 0),
+        key=f"sn3_{current_competitor['Name']}"
+    )
+
+with edit_col2:
+    st.markdown("#### Clean & Jerk Attempts")
+
+    current_competitor["Clean & Jerk 2"] = st.number_input(
+        "Clean & Jerk 2 (kg)",
+        min_value=0,
+        step=1,
+        value=int(current_competitor["Clean & Jerk 2"] or 0),
+        key=f"cj2_{current_competitor['Name']}"
+    )
+
+    current_competitor["Clean & Jerk 3"] = st.number_input(
+        "Clean & Jerk 3 (kg)",
+        min_value=0,
+        step=1,
+        value=int(current_competitor["Clean & Jerk 3"] or 0),
+        key=f"cj3_{current_competitor['Name']}"
+    )
 
         st.markdown("### Judge Decision")
         judge_col1, judge_col2 = st.columns(2)
