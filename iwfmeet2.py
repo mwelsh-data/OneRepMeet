@@ -505,7 +505,8 @@ if view == "Admin Control Desk":
         )
 
         st.metric("Current Attempt Weight", f"{weight} kg")
-        st.markdown("### Attempt Weight Editor")
+
+st.markdown("### Attempt Weight Editor")
 
 edit_col1, edit_col2 = st.columns(2)
 
@@ -546,6 +547,8 @@ with edit_col2:
         value=int(current_competitor["Clean & Jerk 3"] or 0),
         key=f"cj3_{current_competitor['Name']}"
     )
+
+st.markdown("### Judge Decision")
 
         st.markdown("### Judge Decision")
         judge_col1, judge_col2 = st.columns(2)
