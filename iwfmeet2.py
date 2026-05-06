@@ -5,7 +5,8 @@ import time
 st.set_page_config(
     page_title="OneRep Weightlifting Meet Manager",
     page_icon="🏋️",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # -----------------------------
@@ -22,7 +23,8 @@ st.markdown(
             --onerep-white: #ffffff;
             --onerep-teal: #76f7ff;
             --onerep-teal-dark: #22b8c7;
-            --onerep-coral: #ff7f6e;
+            --onerep-pink: #f6c7c7;
+            --onerep-mint: #bff4df;
             --onerep-yellow: #ffd166;
             --onerep-gray: #f2eee7;
         }
@@ -100,11 +102,13 @@ st.markdown(
         }
 
         .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
-            background: var(--onerep-coral);
+            background: var(--onerep-pink);
             color: var(--onerep-black);
             border: 3px solid var(--onerep-black);
             border-radius: 999px;
+            font-family: 'Futura PT', 'Inter', sans-serif;
             font-weight: 800;
+            letter-spacing: 0.02em;
             box-shadow: 4px 4px 0px var(--onerep-black);
             transition: all 0.08s ease-in-out;
         }
@@ -126,6 +130,20 @@ st.markdown(
             border-radius: 14px !important;
         }
 
+        [data-testid="stMetric"] {
+            background: var(--onerep-mint);
+            border: 3px solid var(--onerep-black);
+            border-radius: 22px;
+            padding: 1rem;
+            box-shadow: 5px 5px 0px var(--onerep-black);
+            color: var(--onerep-black);
+        }
+
+        [data-testid="stMetric"] label,
+        [data-testid="stMetric"] div {
+            color: var(--onerep-black) !important;
+        }
+
         .onerep-pill-row {
             display: flex;
             gap: 0.75rem;
@@ -134,7 +152,7 @@ st.markdown(
         }
 
         .onerep-pill {
-            background: var(--onerep-yellow);
+            background: var(--onerep-pink);
             border: 2px solid var(--onerep-black);
             border-radius: 999px;
             padding: 0.35rem 0.75rem;
@@ -184,7 +202,7 @@ st.markdown(
         }
 
         .display-detail {
-            background: var(--onerep-yellow);
+            background: var(--onerep-pink);
             border: 3px solid var(--onerep-black);
             border-radius: 999px;
             padding: 0.65rem 1.1rem;
@@ -202,7 +220,23 @@ st.markdown(
             font-family: 'Fredoka', sans-serif;
             font-size: clamp(3rem, 9vw, 7rem);
             line-height: 1;
-            box-shadow: 7px 7px 0px var(--onerep-coral);
+            box-shadow: 7px 7px 0px var(--onerep-pink);
+        }
+
+        .plate-card, .results-card {
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--onerep-black);
+            border: 3px solid var(--onerep-black);
+            border-radius: 22px;
+            box-shadow: 7px 7px 0px var(--onerep-mint);
+            padding: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        .plate-line {
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin: 0.35rem 0;
         }
     </style>
     """,
@@ -233,6 +267,9 @@ if "timer_running" not in st.session_state:
 if "timer_start_time" not in st.session_state:
     st.session_state.timer_start_time = None
 
+if "meet_results" not in st.session_state:
+    st.session_state.meet_results = []
+
 # -----------------------------
 # Helper Functions
 # -----------------------------
@@ -261,12 +298,100 @@ def get_timer_display():
     return f"{minutes}:{seconds:02d}"
 
 
+def record_lift_result(result):
+    if not st.session_state.competitors:
+        return
+
+    competitor = st.session_state.competitors[st.session_state.current_lifter_index]
+    weight = get_current_attempt_weight(
+        competitor,
+        st.session_state.current_lift,
+        st.session_state.current_attempt
+    )
+
+    lift_key = f"{st.session_state.current_lift} {st.session_state.current_attempt} Result"
+    competitor[lift_key] = result
+
+    result_record = {
+        "Competitor": competitor["Name"],
+        "Lift": st.session_state.current_lift,
+        "Attempt": st.session_state.current_attempt,
+        "Weight (kg)": weight,
+        "Result": result,
+    }
+
+    st.session_state.meet_results.append(result_record)
+
+
+def calculate_plates(total_weight, bar_weight_text):
+    try:
+        bar_weight = float(bar_weight_text.replace(" kg", ""))
+    except Exception:
+        bar_weight = 20
+
+    remaining = total_weight - bar_weight
+
+    if remaining <= 0:
+        return []
+
+    per_side = remaining / 2
+    plate_options = [25, 20, 15, 10, 5, 2.5, 2, 1.5, 1, 0.5]
+    plate_icons = {
+        25: "🔴",
+        20: "🔵",
+        15: "🟡",
+        10: "🟢",
+        5: "⚪",
+        2.5: "🔴",
+        2: "🔵",
+        1.5: "🟡",
+        1: "🟢",
+        0.5: "⚪",
+    }
+
+    plates = []
+
+    for plate in plate_options:
+        count = int(per_side // plate)
+        if count > 0:
+            plates.append({
+                "plate": plate,
+                "count": count,
+                "icon": plate_icons[plate]
+            })
+            per_side = round(per_side - (count * plate), 2)
+
+    return plates
+
+
+def render_plate_calculator(total_weight, bar_weight_text):
+    plates = calculate_plates(total_weight, bar_weight_text)
+
+    if total_weight <= 0:
+        return "<div class='plate-card'><h3>Plate Calculator</h3><p>No attempt weight selected yet.</p></div>"
+
+    if not plates:
+        return f"<div class='plate-card'><h3>Plate Calculator</h3><p>Use the empty {bar_weight_text} bar.</p></div>"
+
+    rows = ""
+    for plate in plates:
+        size_label = "big" if plate["plate"] >= 5 else "little"
+        rows += f"<div class='plate-line'>{plate['icon']} {plate['count']} x {plate['plate']} kg {size_label} plate per side</div>"
+
+    return f"""
+    <div class='plate-card'>
+        <h3>Plate Calculator</h3>
+        <p><strong>Total:</strong> {total_weight} kg | <strong>Bar:</strong> {bar_weight_text}</p>
+        {rows}
+    </div>
+    """
+
 # -----------------------------
 # View Navigation
 # -----------------------------
 view = st.sidebar.radio(
     "View",
-    ["Admin Control Desk", "Public Display"]
+    ["Admin Control Desk", "Public Display", "Meet Results"]
 )
 
 # -----------------------------
@@ -381,6 +506,21 @@ if view == "Admin Control Desk":
 
         st.metric("Current Attempt Weight", f"{weight} kg")
 
+        st.markdown("### Judge Decision")
+        judge_col1, judge_col2 = st.columns(2)
+
+        with judge_col1:
+            if st.button("✅ Pass / Good Lift"):
+                record_lift_result("Pass")
+                st.success("Lift marked as Pass.")
+                st.rerun()
+
+        with judge_col2:
+            if st.button("❌ Fail / No Lift"):
+                record_lift_result("Fail")
+                st.error("Lift marked as Fail.")
+                st.rerun()
+
         st.markdown("### Timer Controls")
         t1, t2, t3, t4 = st.columns(4)
 
@@ -420,6 +560,7 @@ if view == "Admin Control Desk":
 
     if st.session_state.competitors:
         df = pd.DataFrame(st.session_state.competitors)
+        df.index = df.index + 1
         st.dataframe(df, use_container_width=True)
 
         csv = df.to_csv(index=False).encode("utf-8")
@@ -441,6 +582,11 @@ if view == "Admin Control Desk":
             st.session_state.timer_running = False
             st.session_state.timer_start_time = None
             st.warning("All competitors have been cleared.")
+            st.rerun()
+
+        if st.button("Clear Meet Results"):
+            st.session_state.meet_results = []
+            st.warning("Meet results have been cleared.")
             st.rerun()
 
 # -----------------------------
@@ -473,9 +619,35 @@ if view == "Public Display":
             unsafe_allow_html=True
         )
 
+        st.markdown(
+            render_plate_calculator(weight, current_competitor["Bar Weight"]),
+            unsafe_allow_html=True
+        )
+
         if st.session_state.timer_running:
             time.sleep(1)
             st.rerun()
 
     else:
         st.info("No competitors added yet. Add competitors from the Admin Control Desk first.")
+
+# -----------------------------
+# Meet Results View
+# -----------------------------
+if view == "Meet Results":
+    st.subheader("Live Meet Results")
+
+    if st.session_state.meet_results:
+        results_df = pd.DataFrame(st.session_state.meet_results)
+        results_df.index = results_df.index + 1
+        st.dataframe(results_df, use_container_width=True)
+
+        csv = results_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Meet Results as CSV",
+            data=csv,
+            file_name="onerep_meet_results.csv",
+            mime="text/csv"
+        )
+    else:
+        st.info("No lift results recorded yet. Use the Judge Decision buttons in the Admin Control Desk.")
