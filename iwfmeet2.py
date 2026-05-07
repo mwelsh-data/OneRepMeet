@@ -410,7 +410,7 @@ st.markdown(
         <div class="onerep-kicker">Meet Day Control Desk</div>
         <h1 class="onerep-title">ONE REP<br>Meet Manager</h1>
         <div class="onerep-subtitle">
-            A simple, joyful meet-day tool for tracking athletes, bar weight, openers, attempts, and the platform clock.
+            A meet-day tool for tracking all the baddies, bar weight, openers, attempts, and the platform clock.
         </div>
         <div class="onerep-pill-row">
             <span class="onerep-pill">Snatch</span>
